@@ -1,6 +1,6 @@
 {
-  "name": "Super Flávio World",
-  "description": "Descubra tudo que aconteceu no mundo do Flavinho",
+  "name": "Super Flávio World I e II",
+  "description": "Escolha o cartucho: a ficha corrida do Flavinho (I) ou O Brasil sob Flávio (II)",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

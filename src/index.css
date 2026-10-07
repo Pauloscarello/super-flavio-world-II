@@ -122,6 +122,7 @@ canvas {
 .ov {
   position: absolute;
   inset: 0;
+  z-index: 4; /* acima da camada de texto do jogo (.tlayer) */
 }
 
 .px {
@@ -1204,4 +1205,161 @@ button:focus-visible {
   #rotate .phone, .roll, .press, .next, .go-big, .go-hint, .u-hint, .cr-hint, #credits {
     animation: none;
   }
+}
+
+/* ---------- Seleção de cartucho ---------- */
+.carts {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 3vh, 28px);
+  background: radial-gradient(ellipse at 50% 40%, #1c2050 0%, #070920 70%);
+  text-align: center;
+}
+.carts h1 {
+  margin: 0;
+  font-size: clamp(10px, 2.6vw, 22px);
+  color: var(--gold);
+  text-shadow: 2px 2px 0 #000;
+}
+.cart-row { display: flex; gap: clamp(14px, 4vw, 48px); align-items: flex-end; }
+.cart {
+  position: relative;
+  width: clamp(150px, 27vw, 270px);
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: transform .15s, filter .15s, opacity .15s;
+  filter: grayscale(1);
+  opacity: .75;
+}
+.cart.on, .cart:focus-visible {
+  transform: translateY(-8px);
+  outline: none;
+  opacity: 1;
+  filter: drop-shadow(3px 0 0 var(--gold)) drop-shadow(-3px 0 0 var(--gold)) drop-shadow(0 3px 0 var(--gold)) drop-shadow(0 -3px 0 var(--gold)) drop-shadow(0 8px 0 #000);
+}
+.cart .shell {
+  display: block;
+  padding: 9% 8% 17%;
+  border-radius: 6% 6% 3% 3%;
+  background: linear-gradient(#9a9aa6, #6a6a78);
+  box-shadow: inset 0 -10px 0 #4a4a56;
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 92% 88%, 92% 100%, 8% 100%, 8% 88%, 0 88%);
+}
+.cart .lbl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1.1vw, 10px);
+  border-radius: 4px;
+  padding: 10% 6%;
+  box-sizing: border-box;
+  min-height: clamp(130px, 22vw, 230px);
+}
+.cart.c1 .lbl { background: linear-gradient(#5aa8ff, #bfe6ff); }
+.cart.c2 .lbl { background: linear-gradient(#1a0404, #7a1a12); }
+.cart .cs { font-size: clamp(7px, 1.3vw, 13px); color: #fff8e7; -webkit-text-stroke: 1px #000; paint-order: stroke fill; }
+.cart .cf { font-size: clamp(12px, 2.3vw, 24px); -webkit-text-stroke: 1.5px #000; paint-order: stroke fill; white-space: nowrap; }
+.cart.c1 .cf { color: var(--gold); }
+.cart.c2 .cf { color: var(--red); }
+.cart .cw { font-size: clamp(8px, 1.5vw, 15px); -webkit-text-stroke: 1px #000; paint-order: stroke fill; }
+.cart.c1 .cw { color: var(--green); }
+.cart.c2 .cw { color: #b89a6a; }
+.cart .ct { font-family: var(--read); font-size: clamp(12px, 1.6vw, 17px); line-height: 1.15; text-transform: none; letter-spacing: 0; color: #fff; text-shadow: 1px 1px 0 #000; }
+.cart .seal { position: absolute; top: 4%; right: -5%; z-index: 1; background: #2ecc55; color: #000; font-size: clamp(5px, 1vw, 9px); padding: 3px 5px; transform: rotate(8deg); }
+.cart .seal.new { background: var(--gold); }
+.carts .hint { margin: 0; font-size: clamp(6px, 1.3vw, 11px); color: var(--ink); animation: blink 1.1s steps(2) infinite; }
+.carts .disc2 { margin: 0; font-family: var(--read); font-size: clamp(13px, 1.8vw, 18px); text-transform: none; letter-spacing: 0; color: #b8bde8; }
+
+.swap {
+  position: absolute;
+  top: calc(2 * var(--u));
+  left: calc(2 * var(--u));
+  font-size: clamp(6px, calc(1.3 * var(--u)), 11px);
+  color: var(--ink);
+  text-decoration: none;
+  background: rgba(0,0,0,.45);
+  padding: calc(.8 * var(--u)) calc(1.2 * var(--u));
+  z-index: 8;
+}
+.swap:hover { color: var(--gold); }
+
+/* ---------- v2: o Brasil Invertido ---------- */
+html.v2 body { background: #0a0306; }
+.v2 .logo .f span:nth-child(4n+1) { color: #c0402a; }
+.v2 .logo .f span:nth-child(4n+2) { color: #6a8a4a; }
+.v2 .logo .f span:nth-child(4n+3) { color: #8a6a9a; }
+.v2 .logo .f span:nth-child(4n+4) { color: #b8862a; }
+.v2 .logo .w { color: #b89a6a; }
+.v2 .logo .ii { color: var(--red); font-weight: 400; }
+.v2 .sub2 {
+  font-size: clamp(7px, calc(2 * var(--u)), 18px);
+  color: #e9d8a6;
+  text-shadow: calc(.3 * var(--u)) calc(.3 * var(--u)) 0 #000;
+}
+.v2 .dlg { background: rgba(18, 6, 10, .94); border-color: #c8a87a; }
+.v2 .tag { background: #6a1a12; color: #fff8e7; }
+.v2 .tag.end { background: #8a6a1a; color: #000; }
+.v2 .card { background: rgba(10, 2, 4, .88); }
+.v2 #hud { color: #f0e0c8; }
+.v2 #mapbar { background: rgba(18, 6, 10, .85); }
+.v2 .disc { text-shadow: calc(.2 * var(--u)) calc(.2 * var(--u)) 0 #000; }
+
+.sel2 { grid-template-columns: 1fr; text-align: center; background: rgba(18, 6, 10, .9); border-color: #c8a87a; }
+.pickrow { display: flex; gap: calc(1.6 * var(--u)); justify-content: center; }
+.pickrow .pk { display: flex; flex-direction: column; align-items: center; gap: calc(.8 * var(--u)); padding: calc(.8 * var(--u)); border: calc(.3 * var(--u)) solid transparent; }
+.pickrow .pk.on { border-color: var(--gold); background: rgba(255, 210, 31, .12); }
+.pickrow canvas { width: calc(7 * var(--u)); height: calc(10 * var(--u)); image-rendering: pixelated; background: none; }
+.pickrow span { font-size: clamp(4px, calc(.95 * var(--u)), 9px); }
+
+.skip {
+  position: absolute;
+  right: calc(2 * var(--u));
+  top: calc(2 * var(--u));
+  z-index: 9;
+  font-size: clamp(6px, calc(1.3 * var(--u)), 11px);
+  color: var(--ink);
+  background: rgba(0, 0, 0, .55);
+  border: calc(.2 * var(--u)) solid rgba(255, 255, 255, .4);
+  padding: calc(.8 * var(--u)) calc(1.2 * var(--u));
+  cursor: pointer;
+}
+
+/* v2: camada de texto nítido sobre o canvas (cutscenes, balões, placas) */
+.tlayer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.tlayer .tt {
+  position: absolute;
+  white-space: nowrap;
+  font-family: var(--pixel);
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, .55);
+}
+.tlayer .tb {
+  position: absolute;
+  background: #f4f0e0;
+  color: #120c18;
+  border: 2px solid #120c18;
+  padding: .3em .6em .35em;
+  font-family: var(--read);
+  line-height: 1.05;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, .45);
+  text-wrap: balance;
+}
+.tlayer .tb::after {
+  content: '';
+  position: absolute;
+  left: var(--tail, 50%);
+  bottom: -12px;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top: 8px solid #120c18;
 }
