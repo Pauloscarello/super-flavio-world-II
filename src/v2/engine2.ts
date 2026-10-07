@@ -318,7 +318,7 @@ export function initGame2(onExit?: () => void) {
     const roll = $('roll');
     if (roll) {
       roll.innerHTML = final
-        ? `<div class="go-kick">${esc(heroName())} × 0</div><div class="go-big">Game over</div><div class="go-head">O Brasil não desiste</div><div class="go-sub">Quem vive aqui já está acostumado a recomeçar. Mais 13 vidas.</div><div class="go-lives">${esc(heroName())} × 13</div><div class="go-hint">Aperte ${keyJ()} para recomeçar a fase do início</div>`
+        ? `<div class="go-kick">${esc(heroName())} × 0</div><div class="go-big">Game over</div><div class="go-head">O Brasil não desiste</div><div class="go-sub">Quem vive aqui já está acostumado a recomeçar. Mais 13 vidas.</div><div class="go-lives">${esc(heroName())} × 13</div><div class="go-hint">Aperte ${keyJ()} para ${bossCk && lv.i === bossCk.i ? 'voltar ao chefão' : 'recomeçar a fase do início'}</div>`
         : `<div class="go-kick">Fase ${D.n} · ${esc(D.name)}</div><div class="go-big">Game over</div><div class="go-head">${esc(msg.head)}</div><div class="go-sub">${esc(msg.sub)}</div><div class="go-lives">${esc(heroName())} × ${lives}</div><div class="go-hint">${keyJ()} ${bossCk && lv.i === bossCk.i ? 'volta no chefão' : 'tenta de novo'} · ${keyBack()} volta ao mapa</div>`;
       roll.style.animation = 'none';
       void roll.offsetWidth;
@@ -604,7 +604,7 @@ export function initGame2(onExit?: () => void) {
           const hx = e.x + (f > 0 ? e.w : 0), hy = e.y + 7;
           const px = P.x + P.w / 2, py = P.y + P.h / 2;
           const dx = (px - hx) * f;
-          if (!P.hide && P.inv <= 0 && dx > 0 && dx < 70 && Math.abs(py - hy) < 6 + dx * 0.35) {
+          if (!P.hide && P.inv <= 0 && dx > 0 && dx < 70 && Math.abs(py - hy) < 4 + dx * 0.16) {
             killPlayer(false, { head: 'Taxa de proteção vencida.', sub: 'A lanterna da milícia te pegou.' });
             return;
           }
@@ -797,11 +797,11 @@ export function initGame2(onExit?: () => void) {
   // Se o jogador acerta nesse intervalo, ele volta à ativa. Três acertos vencem.
   const VULN = 360;
   const BOSS_NAME: Record<string, string> = {
-    relogio: 'O Relógio Flexível', taxador: 'O Taxador do Pix', tesourao: 'O Tesourão',
+    relogio: 'O Relógio do Patrão', taxador: 'O Taxador do Pix', tesourao: 'O Tesourão',
     licenciador: 'O Licenciador', capitao: 'O Capitão', calculadora: 'A Calculadora Desvinculadora', flavio: 'Flávio'
   };
   const BOSS_HINT: Record<string, string> = {
-    relogio: 'Pule o ponteiro. Quando o relógio parar, pule no botão PONTO.',
+    relogio: 'Desvie das HORAS EXTRAS. Quando o ponto aparecer no meio, pule nele.',
     taxador: 'Desvie dos adesivos. Quando ele mostrar PROCESSANDO, pule na cabeça dele.',
     tesourao: 'Saia das plataformas que piscam. Quando a tesoura emperrar, pule no parafuso.',
     licenciador: 'Corra até cada licença e aperte X para carimbar NEGADO.',
@@ -819,7 +819,7 @@ export function initGame2(onExit?: () => void) {
     if (!vertical) { camX = B.ax; }
     const ax = B.ax ?? 0, fl = FLOOR();
     switch (type) {
-      case 'relogio': B.cx = ax + VW / 2; B.cy = 62; B.btn = { x: ax + VW / 2 - 12, y: 108, w: 24, h: 10 }; break;
+      case 'relogio': for (const w of lv.ents) if (w.k === 'walk' && w.x > ax - 30) w.gone = true; B.cx = ax + VW / 2; B.cy = 62; B.f = 0; B.btn = { x: ax + VW / 2 - 12, y: fl - 30, w: 24, h: 6 }; break;
       case 'taxador': B.x = ax + VW - 70; B.y = fl - 36; B.w = 30; B.h = 36; B.vx = -0.6; break;
       case 'tesourao': {
         B.groups = [];
@@ -886,19 +886,22 @@ export function initGame2(onExit?: () => void) {
 
     switch (B.type) {
       case 'relogio': {
+        // o Relógio do Patrão dispara relógios de HORA EXTRA na direção da jogadora.
+        // A cada ponto batido: 20% mais horas extras e 10% mais rápidas.
+        const rate = Math.max(10, Math.round(46 / Math.pow(1.2, B.hits)));
+        const spd = 1.6 * Math.pow(1.1, B.hits);
+        if (++B.f % rate === 0) {
+          const sx = B.cx, sy = B.cy + 28;
+          const tx = P.x + P.w / 2 + (hr(T) - 0.5) * 50, ty = P.y + P.h / 2;
+          const d = Math.max(1, Math.hypot(tx - sx, ty - sy));
+          proj({ kind: 'hext', x: sx - 6, y: sy - 6, w: 12, h: 12, vx: (tx - sx) / d * spd, vy: (ty - sy) / d * spd, life: 600, floorStop: true, msg: { head: 'Hora extra não paga!', sub: 'O relógio do patrão te pegou.' } });
+          tone(880, 0.05, 'square', 0.025, 660);
+        }
         if (B.state === 'attack') {
-          // o ponteiro gigante varre o chão; cada volta, mais rápido
-          if (!B.blade) B.blade = { x: B.sub % 2 ? ax + VW + 10 : ax - 50, dir: B.sub % 2 ? -1 : 1 };
-          B.blade.x += B.blade.dir * (2.4 + B.hits * 0.7);
-          const bl = { x: B.blade.x, y: fl - 9, w: 46, h: 9 };
-          if (over(P, bl) && P.inv <= 0) { killPlayer(false, { head: 'Banco de horas zerado!', sub: 'O ponteiro passou por cima da sua folga.' }); return; }
-          if (B.blade.x > ax + VW + 60 || B.blade.x < ax - 60) { B.blade = null; B.sub++; }
-          if (B.sub >= 3) { B.blade = null; toVuln(); }
+          if (B.t >= 300) toVuln(); // depois de uns segundos, o ponto aparece no meio da tela
         } else if (B.state === 'vuln') {
-          if (stompOn(B.btn)) { P.vy = -4; bossHit(); parts.push({ k: 'txt', s: `PONTO ${B.hits}/3`, x: B.btn.x - 4, y: B.btn.y - 8, t: 50 }); }
+          if (stompOn(B.btn)) { P.vy = -4.2; bossHit(); parts.push({ k: 'txt', s: `PONTO ${B.hits}/3`, x: B.btn.x - 4, y: B.btn.y - 10, t: 50 }); }
           else if (--B.t <= 0) { B.state = 'attack'; B.t = 0; B.sub = 0; }
-          // o botão é uma plataforma enquanto pisca
-          if (P.vy >= 0 && P.y + P.h <= B.btn.y + 4 && P.y + P.h + P.vy >= B.btn.y && P.x + P.w > B.btn.x && P.x < B.btn.x + B.btn.w) { /* tratado no stompOn */ }
         }
         break;
       }
@@ -1384,6 +1387,8 @@ export function initGame2(onExit?: () => void) {
       });
       // fios
       rep(cam, 0.55, 120, (x) => { ctx.strokeStyle = '#120e1a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, 70); ctx.quadraticCurveTo(x + 60, 92, x + 120, 70); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, 78); ctx.quadraticCurveTo(x + 60, 104, x + 120, 78); ctx.stroke(); });
+      // escurece só o cenário de fundo, para casas de entrega e esconderijos se destacarem
+      ctx.fillStyle = 'rgba(6,6,22,.34)'; ctx.fillRect(0, 0, VW, VH);
     },
     inss(cam) {
       rep(cam, 0.35, 160, (x, k) => {
@@ -1541,15 +1546,39 @@ export function initGame2(onExit?: () => void) {
         R(x - 1, y + 12, 14, 2, '#3a1a0a');
         break;
       }
-      case 'cover':
-        if (e.kind === 'caixa') { R(x + 2, y + 6, 16, 18, '#2a4a6a'); R(x, y + 2, 20, 5, '#3a5a7a'); R(x + 4, y + 10, 12, 1, '#1a3a5a'); R(x + 4, y + 16, 12, 1, '#1a3a5a'); }
-        else { for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) R(x + c * 10 + (r % 2) * 5 - (r % 2 ? 5 : 0), y + r * 6, 10, 5, '#5a3a2a'); }
+      case 'cover': {
+        R(x - 2, y + e.h - 1, e.w + 4, 2, 'rgba(0,0,0,.5)');
+        if (e.kind === 'caixa') {
+          R(x + 1, y + 5, 18, 19, '#0a0a12'); R(x + 2, y + 6, 16, 18, '#2a78c0'); R(x - 1, y + 1, 22, 6, '#0a0a12'); R(x, y + 2, 20, 4, '#4a98e0');
+          R(x + 4, y + 11, 12, 1, '#1a5a98'); R(x + 4, y + 17, 12, 1, '#1a5a98'); R(x + 3, y + 7, 2, 15, 'rgba(255,255,255,.28)');
+        } else {
+          R(x - 1, y - 1, 22, 26, '#0a0a12');
+          for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) { const bx = x + c * 10 - (r % 2) * 5; const bw = Math.min(10, x + 20 - bx) - 1; if (bw > 0 && bx >= x) R(bx, y + r * 6, bw, 5, r % 2 ? '#a85a3a' : '#b8683e'); }
+          R(x, y, 20, 1, 'rgba(255,255,255,.3)');
+        }
+        // passou por um esconderijo: mostra o botão
+        if (P && !P.hide && over(P, { x: e.x + 2, y: e.y, w: e.w - 4, h: e.h })) {
+          const k = keyB(); R(x + e.w / 2 - 15, y - 14, 30, 10, '#ffd21f'); R(x + e.w / 2 - 15, y - 14, 30, 1, '#fff');
+          text(k, x + e.w / 2, y - 6, '#120c18', 5, 'center');
+          text('SEGURE', x + e.w / 2, y - 17, '#ffd21f', 4, 'center');
+        }
         break;
+      }
       case 'porta': {
-        R(x - 6, y - 10, e.w + 12, e.h + 10, '#1e1a28');
-        R(x, y, e.w, e.h, e.done ? '#2a5a3a' : '#3a2a20'); R(x + e.w - 5, y + 14, 2, 3, '#ffd21f');
-        if (!e.done) { R(x + e.w / 2 - 22, y - 13, 44, 10, (T >> 4) % 2 ? '#e8412c' : '#a82a20'); text('ENTREGA', x + e.w / 2, y - 5, '#fff', 5, 'center'); }
-        if (e.done) { R(x + e.w / 2 - 12, y - 13, 24, 10, '#2a8a4a'); text('OK', x + e.w / 2, y - 5, '#fff', 5, 'center'); }
+        // casinha de entrega: tijolo/reboco, laje, caixa d'água, janela acesa e a porta
+        const WALLS = ['#c8785a', '#d8b860', '#6aa0c8', '#9ac07a', '#c890b8'];
+        const wc = WALLS[Math.floor(e.x / TS) % WALLS.length];
+        const hx = x - 14, hy = y - 18, hw = e.w + 28, hh = e.h + 18;
+        R(hx - 1, hy - 1, hw + 2, hh + 1, '#0a0a12'); R(hx, hy, hw, hh, wc);
+        for (let yy = hy + 4; yy < hy + hh; yy += 5) R(hx, yy, hw, 1, 'rgba(0,0,0,.12)');
+        R(hx - 3, hy - 4, hw + 6, 4, '#5a5260'); R(hx - 3, hy - 4, hw + 6, 1, '#8a8290'); // laje
+        R(hx + hw - 14, hy - 13, 10, 9, '#2a78c0'); R(hx + hw - 15, hy - 14, 12, 2, '#4a98e0'); // caixa d'água
+        R(hx + 3, hy + 6, 8, 8, '#0a0a12'); R(hx + 4, hy + 7, 6, 6, e.done ? '#ffe08a' : '#ffc860'); R(hx + 6.5, hy + 7, 1, 6, '#0a0a12'); // janela
+        R(x - 1, y - 1, e.w + 2, e.h + 1, '#0a0a12');
+        R(x, y, e.w, e.h, e.done ? '#2a8a4a' : '#5a3a24'); R(x + 2, y + 2, e.w - 4, e.h - 4, e.done ? '#2a7a40' : '#4a2e1c'); R(x + e.w - 5, y + 14, 2, 3, '#ffd21f');
+        const lx = x + e.w / 2, ly = hy - 16;
+        if (!e.done) { R(lx - 22, ly - 9, 44, 10, (T >> 4) % 2 ? '#e8412c' : '#a82a20'); text('ENTREGA', lx, ly - 1, '#fff', 5, 'center'); }
+        else { R(lx - 12, ly - 9, 24, 10, '#2a8a4a'); text('OK', lx, ly - 1, '#fff', 5, 'center'); }
         break;
       }
       case 'cobrador': {
@@ -1582,6 +1611,13 @@ export function initGame2(onExit?: () => void) {
       }
       case 'proj': {
         switch (e.kind) {
+          case 'hext': {
+            // relógio de HORA EXTRA: mostrador + fita vermelha com o aviso
+            circ(x + 6, y + 6, 7, '#120c18'); circ(x + 6, y + 6, 6, '#f4f0e0');
+            const a = T * 0.3; ctx.strokeStyle = '#120c18'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 6, y + 6); ctx.lineTo(x + 6 + Math.sin(a) * 4, y + 6 - Math.cos(a) * 4); ctx.stroke();
+            R(x - 17, y - 9, 46, 7, '#e8412c'); text('HORA EXTRA', x + 6, y - 3, '#fff', 4, 'center');
+            break;
+          }
           case 'adesivo': case 'adesivoT':
             R(x, y, e.w, e.h, '#e8412c'); text('$', x + e.w / 2, y + e.h - 2, '#fff', 4, 'center'); break;
           case 'tesoura':
@@ -1672,22 +1708,23 @@ export function initGame2(onExit?: () => void) {
     switch (B.type) {
       case 'relogio': {
         const cx = B.cx - camX, cy = B.cy - camY;
-        circ(cx, cy, 40, '#120c18'); circ(cx, cy, 37, blink ? '#fff6c0' : '#c8c0a8'); circ(cx, cy, 31, '#1e1824');
+        circ(cx, cy, 40, '#120c18'); circ(cx, cy, 37, '#c8c0a8'); circ(cx, cy, 31, '#1e1824');
         for (let i = 0; i < 12; i++) R(cx + Math.sin(i * Math.PI / 6) * 27 - 1, cy - Math.cos(i * Math.PI / 6) * 27 - 1, 2, 2, '#c8c0a8');
-        const sp = B.state === 'attack' ? T * (0.12 + B.hits * 0.05) : 0;
+        const sp = T * (0.12 + B.hits * 0.05);
         ctx.strokeStyle = '#e8412c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(sp) * 24, cy - Math.cos(sp) * 24); ctx.stroke();
         ctx.strokeStyle = '#c8c0a8'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(sp / 12) * 16, cy - Math.cos(sp / 12) * 16); ctx.stroke();
-        R(cx - 7, cy + 8, 4, 4, '#fff'); R(cx + 3, cy + 8, 4, 4, '#fff'); R(cx - 6, cy + 9, 2, 2, '#120c18'); R(cx + 4, cy + 9, 2, 2, '#120c18');
-        text('FLEXÍVEL', cx, cy - 12, '#c8c0a8', 4, 'center');
-        if (B.blade) {
-          const bx = B.blade.x - camX;
-          ctx.strokeStyle = 'rgba(232,65,44,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy + 30); ctx.lineTo(bx + 23, fl - 5); ctx.stroke();
-          R(bx, fl - 9, 46, 9, '#e8412c'); R(bx, fl - 9, 46, 2, '#ff8a6a'); ctx.fillStyle = '#e8412c'; ctx.beginPath(); ctx.moveTo(bx + (B.blade.dir > 0 ? 46 : 0), fl - 9); ctx.lineTo(bx + (B.blade.dir > 0 ? 56 : -10), fl - 4); ctx.lineTo(bx + (B.blade.dir > 0 ? 46 : 0), fl); ctx.fill();
-        }
+        // cara brava de patrão
+        R(cx - 9, cy + 6, 6, 2, '#120c18'); R(cx + 3, cy + 6, 6, 2, '#120c18'); R(cx - 7, cy + 9, 4, 4, '#fff'); R(cx + 3, cy + 9, 4, 4, '#fff'); R(cx - 6, cy + 10, 2, 2, '#120c18'); R(cx + 4, cy + 10, 2, 2, '#120c18');
+        R(cx - 6, cy + 17, 12, 2, '#e8412c');
+        // faixa com o nome
+        R(cx - 46, cy + 42, 92, 12, '#e8412c'); R(cx - 46, cy + 42, 92, 2, '#ff8a6a');
+        text('RELÓGIO DO PATRÃO', cx, cy + 51, '#fff', 4, 'center');
         if (B.state === 'vuln') {
+          // o relógio de ponto, fixo no meio do chão
           const bx = B.btn.x - camX, by = B.btn.y - camY;
-          R(bx, by, B.btn.w, B.btn.h, blink ? '#ffd21f' : '#2ecc55'); R(bx, by, B.btn.w, 2, '#fff'); text('PONTO', bx + B.btn.w / 2, by + 8, '#120c18', 4, 'center');
-          R(bx + 10, by + B.btn.h, 4, 40 - 8, '#3a3a4a');
+          R(bx + 2, by + 6, B.btn.w - 4, 24, '#3a3a4a'); R(bx + 5, by + 10, B.btn.w - 10, 8, '#9ab08a'); R(bx + 7, by + 12, 3, 4, '#120c18'); R(bx + 12, by + 12, 3, 4, '#120c18');
+          R(bx, by, B.btn.w, B.btn.h, blink ? '#ffd21f' : '#2ecc55'); R(bx, by, B.btn.w, 2, '#fff');
+          text('PONTO', bx + B.btn.w / 2, by - 4, blink ? '#ffd21f' : '#2ecc55', 5, 'center');
         }
         break;
       }
@@ -1918,13 +1955,13 @@ export function initGame2(onExit?: () => void) {
     drawParts();
     // noite na fase 5: escuro com as lanternas acesas
     if (lv.id === 'territorio') {
-      ctx.fillStyle = 'rgba(2,2,20,.16)'; ctx.fillRect(0, 0, VW, VH);
+      ctx.fillStyle = 'rgba(2,2,20,.08)'; ctx.fillRect(0, 0, VW, VH);
       for (const e of lv.ents) if (!e.gone && e.k === 'sign') drawSign(e);
       for (const e of lv.ents) {
         if (e.k !== 'cobrador' || e.gone) continue;
         const f = Math.sign(e.vx) || 1, hx = e.x - camX + (f > 0 ? e.w : 0), hy = e.y - camY + 7;
         ctx.fillStyle = 'rgba(255,230,140,.22)';
-        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + f * 70, hy - 6 - 24); ctx.lineTo(hx + f * 70, hy + 6 + 24); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(hx, hy - 3); ctx.lineTo(hx + f * 70, hy - 4 - 11); ctx.lineTo(hx + f * 70, hy + 4 + 11); ctx.lineTo(hx, hy + 3); ctx.fill();
       }
       if (P && !P.hide) { const sx = P.x - camX; R(sx - 1, P.y - camY + 10, 6, 7, '#e8412c'); }
     }
@@ -2110,7 +2147,7 @@ export function initGame2(onExit?: () => void) {
         break;
       case 'card':
         if (confirmHit()) {
-          if (st.final) { lives = 13; bossCk = null; }
+          if (st.final) lives = 13; // o checkpoint do chefão vale até vencê-lo, mesmo depois de perder todas as vidas
           const i = lv!.i!;
           const ck = bossCk && bossCk.i === i ? bossCk : null;
           loadLevel(i);
