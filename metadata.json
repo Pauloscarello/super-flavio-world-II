@@ -1,8 +1,0 @@
-{
-  "name": "Super Flávio World",
-  "description": "Descubra tudo que aconteceu no mundo do Flavinho",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
