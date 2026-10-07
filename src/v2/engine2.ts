@@ -241,6 +241,7 @@ export function initGame2(onExit?: () => void) {
     $('credits').hidden = S !== 'credits';
     const sk = $('skipCut');
     if (sk) sk.hidden = S !== 'cut';
+    document.documentElement.classList.toggle('in-cut', S === 'cut'); // no celular, o botão de pausa some para não cobrir o Pular
     document.documentElement.classList.toggle('txt-open', ['dialog', 'card', 'urna', 'credits'].includes(S));
     if (S === 'map') mapBar();
     if (S === 'pick') renderPick();
@@ -431,7 +432,7 @@ export function initGame2(onExit?: () => void) {
     st = { coins: 0, pontos: 0, sal: 1621, sold: 0, caixa: 0, remedios: 41, mudas: 0, plant: 0, entregas: 0, ben: 1621, stuck: 0, spawn: 90, adh: 60, boiaT: 420, trees: 9, cut: {}, blink: {}, pastelT: 99 };
     if (D.id === 'postinho') st.voidY = (lv.rows + 3) * TS;
     const sx = getStartX();
-    lv.start.x = D.id === 'postinho' ? 3 * TS : sx;
+    lv.start.x = D.id === 'postinho' ? Math.max(3 * TS, sx) : sx; // no celular, sempre à direita das setas
     lv.start.y = FLOOR() - 20;
     P = { x: lv.start.x, y: lv.start.y, w: 10, h: 20, vx: 0, vy: 0, on: false, face: 1, inv: 0, jbuf: 0, coyote: 0, anim: 0, air2: false, hide: false, slow: 0, swing: 0, carry: false };
     B = null;
@@ -1247,14 +1248,14 @@ export function initGame2(onExit?: () => void) {
       const key = `${it.s}|${Math.round(it.x * k)}|${Math.round(it.y * k)}|${it.c}|${it.size}|${it.align}|${it.rot.toFixed(2)}|${it.a.toFixed(2)}|${it.b || 0}|${it.fixed ? 1 : 0}|${k.toFixed(3)}`;
       if ((el as any)._k === key) continue;
       (el as any)._k = key;
-      el.style.display = '';
+      // a div é reaproveitada entre rótulo e balão: zera todo estilo antigo (sombra, largura, origem...)
+      el.removeAttribute('style');
       el.style.opacity = String(it.a);
       if (it.b) {
         el.className = 'tb';
         el.textContent = it.s;
-        el.style.transform = 'none'; el.style.color = '';
-        el.style.maxWidth = Math.round(it.b * 1.25 * k) + 'px';
-        el.style.fontSize = Math.max(13, Math.round(it.size * k)) + 'px';
+                el.style.maxWidth = Math.round(it.b * 1.25 * k) + 'px';
+        el.style.fontSize = Math.max(16, Math.round(it.size * k)) + 'px';
         el.style.left = '0px'; el.style.top = '0px';
         const w = el.offsetWidth, h = el.offsetHeight;
         const W = cv.clientWidth, ax = it.x * k;
@@ -2116,8 +2117,12 @@ export function initGame2(onExit?: () => void) {
           if (ck && P && lv) {
             // volta direto para o chefão
             P.x = ck.x; P.y = ck.y; P.vy = 0;
-            if (lv.id === 'postinho') { camY = 0; camX = 0; }
-            else { camX = lv.arenaX * TS; const maxY = Math.max(0, lv.rows * TS - VH); camY = Math.max(0, Math.min(maxY, P.y - VH * 0.55)); }
+            if (lv.id === 'postinho') {
+              camY = 0; camX = 0;
+              // volta em cima da bancada do Tesourão, longe das setas do celular
+              if (isTouch() && P.x < getStartX()) { P.x = 16 * TS; P.y = 9 * TS - P.h; }
+            }
+            else { camX = lv.arenaX * TS; P.x = Math.max(P.x, camX + getStartX()); const maxY = Math.max(0, lv.rows * TS - VH); camY = Math.max(0, Math.min(maxY, P.y - VH * 0.55)); }
             startBoss();
           }
           setS('play');
@@ -2290,6 +2295,7 @@ export function initGame2(onExit?: () => void) {
   };
 
   return () => {
+    document.documentElement.classList.remove('in-cut');
     cancelAnimationFrame(animId);
     music.stop(AC);
     try { AC?.close(); } catch (_) {}

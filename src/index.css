@@ -1335,6 +1335,8 @@ html.v2 body { background: #0a0306; }
 
 /* v2: camada de texto nítido sobre o canvas (cutscenes, balões, placas) */
 .tlayer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.tlayer .tt, .tlayer .tb { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
 .tlayer .tt {
   position: absolute;
   white-space: nowrap;
@@ -1363,3 +1365,5 @@ html.v2 body { background: #0a0306; }
   border: 6px solid transparent;
   border-top: 8px solid #120c18;
 }
+
+html.in-cut .tpause { visibility: hidden; }
