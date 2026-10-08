@@ -657,6 +657,10 @@ export function initGame2(onExit?: () => void) {
             // pisou na tesoura: ela despenca e não corta mais nada
             e.hurt = false; e.stompable = false; e.counted = true; e.vx = 0; e.vy = 0.5; e.grav = 0.3; e.fallen = true;
             parts.push({ k: 'txt', s: 'CORTE BARRADO!', x: e.x - 20, y: e.y - 4, t: 40 });
+          } else if (e.kind === 'hext') {
+            // pulou em cima da hora extra: ela cai e não machuca mais
+            e.hurt = false; e.stompable = false; e.vx = 0; e.vy = 0.5; e.grav = 0.3; e.fallen = true;
+            parts.push({ k: 'txt', s: 'HORA EXTRA RECUSADA!', x: e.x - 30, y: e.y - 4, t: 40 });
           } else { e.gone = true; parts.push({ k: 'txt', s: e.popTxt || 'POW', x: e.x - 6, y: e.y - 4, t: 30 }); }
           P.vy = K.J ? -5 : -3.2; sfx.stomp();
           continue;
@@ -682,7 +686,8 @@ export function initGame2(onExit?: () => void) {
           const hx = P.x + (P.face > 0 ? 10 : -2), hy = P.y - 4;
           parts.push({ k: 'pastel', x: hx, y: hy, x0: hx, y0: hy, x1: e.x + 6, y1: e.y + 6, t: 14, d: 14 });
           e.served = true; e.vx = 0.7; e.taxed = false; st.pastelT = 0; st.sold++; st.caixa += v; sfx.coin();
-          parts.push({ k: 'txt', s: e.taxed ? '+R$ 4 (TAXA!)' : '+R$ 8 PIX', x: e.x - 14, y: e.y - 6, t: 50 });
+          // com adesivo de TAXA, o pastel sai por R$ 4, em vermelho
+          parts.push({ k: 'txt', s: v === 4 ? '+R$ 4 (TAXA!)' : '+R$ 8 PIX', c: v === 4 ? '#ff3b2a' : '#fff', x: e.x - 14, y: e.y - 6, t: 50 });
           if (st.sold === 20) toast('20 pastéis vendidos! Siga em frente');
           break;
         }
@@ -888,17 +893,21 @@ export function initGame2(onExit?: () => void) {
       case 'relogio': {
         // o Relógio do Patrão dispara relógios de HORA EXTRA na direção da jogadora.
         // A cada ponto batido: 20% mais horas extras e 10% mais rápidas.
-        const rate = Math.max(10, Math.round(46 / Math.pow(1.2, B.hits)));
+        const rate = Math.max(14, Math.round(66 / Math.pow(1.2, B.hits))); // 30% menos horas extras que antes
         const spd = 1.6 * Math.pow(1.1, B.hits);
-        if (++B.f % rate === 0) {
+        if (B.state === 'attack' && ++B.f % rate === 0) { // com o ponto na tela, o relógio para de atirar
           const sx = B.cx, sy = B.cy + 28;
           const tx = P.x + P.w / 2 + (hr(T) - 0.5) * 50, ty = P.y + P.h / 2;
           const d = Math.max(1, Math.hypot(tx - sx, ty - sy));
-          proj({ kind: 'hext', x: sx - 6, y: sy - 6, w: 12, h: 12, vx: (tx - sx) / d * spd, vy: (ty - sy) / d * spd, life: 600, floorStop: true, msg: { head: 'Hora extra não paga!', sub: 'O relógio do patrão te pegou.' } });
+          proj({ kind: 'hext', x: sx - 6, y: sy - 6, w: 12, h: 12, vx: (tx - sx) / d * spd, vy: (ty - sy) / d * spd, life: 600, floorStop: true, stompable: true, msg: { head: 'Hora extra não paga!', sub: 'O relógio do patrão te pegou.' } });
           tone(880, 0.05, 'square', 0.025, 660);
         }
         if (B.state === 'attack') {
-          if (B.t >= 300) toVuln(); // depois de uns segundos, o ponto aparece no meio da tela
+          if (B.t >= 300) {
+            toVuln(); // depois de uns segundos, o ponto aparece no meio da tela
+            // as horas extras que ainda estavam no ar caem sem machucar
+            for (const h of lv.ents) if (h.kind === 'hext' && !h.gone && !h.fallen) { h.hurt = false; h.stompable = false; h.vx = 0; h.vy = 0.5; h.grav = 0.3; h.fallen = true; }
+          }
         } else if (B.state === 'vuln') {
           if (stompOn(B.btn)) { P.vy = -4.2; bossHit(); parts.push({ k: 'txt', s: `PONTO ${B.hits}/3`, x: B.btn.x - 4, y: B.btn.y - 10, t: 50 }); }
           else if (--B.t <= 0) { B.state = 'attack'; B.t = 0; B.sub = 0; }
@@ -1710,7 +1719,8 @@ export function initGame2(onExit?: () => void) {
         const cx = B.cx - camX, cy = B.cy - camY;
         circ(cx, cy, 40, '#120c18'); circ(cx, cy, 37, '#c8c0a8'); circ(cx, cy, 31, '#1e1824');
         for (let i = 0; i < 12; i++) R(cx + Math.sin(i * Math.PI / 6) * 27 - 1, cy - Math.cos(i * Math.PI / 6) * 27 - 1, 2, 2, '#c8c0a8');
-        const sp = T * (0.12 + B.hits * 0.05);
+        if (B.state === 'attack') B.spin = (B.spin || 0) + 0.12 + B.hits * 0.05; // ponteiros param enquanto o ponto está aberto
+        const sp = B.spin || 0;
         ctx.strokeStyle = '#e8412c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(sp) * 24, cy - Math.cos(sp) * 24); ctx.stroke();
         ctx.strokeStyle = '#c8c0a8'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(sp / 12) * 16, cy - Math.cos(sp / 12) * 16); ctx.stroke();
         // cara brava de patrão
@@ -1833,7 +1843,7 @@ export function initGame2(onExit?: () => void) {
   function drawParts() {
     for (const p of parts) {
       const px = Math.round(p.x - camX), py = Math.round((p.y ?? 0) - camY);
-      if (p.k === 'txt') { text(p.s, px + 1, py + 1, '#000', 5); text(p.s, px, py, '#fff', 5); }
+      if (p.k === 'txt') { text(p.s, px + 1, py + 1, '#000', 5); text(p.s, px, py, p.c || '#fff', 5); }
       else if (p.k === 'pastel') { R(px, py, 8, 4, '#e8b04a'); R(px + 1, py - 1, 6, 1, '#f6d27a'); }
       else if (p.k === 'stampTxt') {
         ctx.save(); ctx.globalAlpha = Math.min(1, p.t / 30); ctx.translate(px, py); ctx.rotate(-0.15);
